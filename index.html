@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Brash Orders" />
+  <title>Brash Orders</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #FFE7BA; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; min-height: 100vh; }
+    .app { max-width: 480px; margin: 0 auto; padding: 1.5rem 1rem 3rem; }
+    .logo { text-align: center; margin-bottom: 1.5rem; }
+    .logo h1 { font-size: 28px; font-weight: 600; color: #D51C29; letter-spacing: 3px; }
+    .logo p { font-size: 13px; color: #8a6a3a; margin-top: 4px; }
+    .card { background: #fff; border-radius: 12px; border: 0.5px solid rgba(213,28,41,0.15); padding: 1.25rem; margin-bottom: 1rem; }
+    .card-title { font-size: 13px; font-weight: 600; color: #D51C29; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 1rem; padding-bottom: 0.6rem; border-bottom: 0.5px solid rgba(213,28,41,0.15); }
+    .row { display: grid; gap: 10px; margin-bottom: 10px; }
+    .row-2 { grid-template-columns: 1fr 1fr; }
+    .row-3 { grid-template-columns: 1fr 1fr 1fr; }
+    .field label { font-size: 12px; color: #8a6a3a; margin-bottom: 5px; display: block; font-weight: 600; }
+    .field input, .field textarea { width: 100%; background: #FFF8EE; border: 0.5px solid rgba(213,28,41,0.2); border-radius: 8px; padding: 10px 12px; font-size: 15px; color: #2C1A0E; font-family: inherit; outline: none; -webkit-appearance: none; }
+    .field input:focus, .field textarea:focus { border-color: #D51C29; box-shadow: 0 0 0 2px rgba(213,28,41,0.1); }
+    .field textarea { resize: none; height: 80px; line-height: 1.5; }
+    .calc-display { background: #FFF0F0; border: 0.5px solid rgba(213,28,41,0.2); border-radius: 8px; padding: 10px 12px; font-size: 15px; font-weight: 600; color: #D51C29; min-height: 42px; display: flex; align-items: center; }
+    .calc-label { font-size: 12px; color: #8a6a3a; margin-bottom: 5px; display: block; font-weight: 600; }
+    .name-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .name-btn { background: #FFF8EE; border: 0.5px solid rgba(213,28,41,0.2); border-radius: 8px; padding: 14px; font-size: 15px; color: #2C1A0E; cursor: pointer; text-align: center; transition: all 0.15s; -webkit-tap-highlight-color: transparent; }
+    .name-btn.selected { background: #D51C29; color: #fff; border-color: #D51C29; font-weight: 600; }
+    .submit-btn { width: 100%; background: #D51C29; color: #fff; border: none; border-radius: 10px; padding: 16px; font-size: 16px; font-weight: 600; cursor: pointer; margin-top: 0.5rem; letter-spacing: 0.5px; -webkit-tap-highlight-color: transparent; }
+    .submit-btn:active { opacity: 0.85; }
+    .result-box { background: #fff; border-radius: 12px; border: 2px solid #D51C29; padding: 1.25rem; margin-top: 1rem; display: none; }
+    .result-box.show { display: block; }
+    .result-title { font-size: 13px; font-weight: 600; color: #D51C29; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 0.75rem; }
+    .result-text { font-size: 13px; color: #2C1A0E; line-height: 1.8; white-space: pre-wrap; font-family: monospace; background: #FFF8EE; border-radius: 8px; padding: 1rem; }
+    .copy-btn { margin-top: 0.75rem; width: 100%; background: transparent; border: 0.5px solid #D51C29; color: #D51C29; border-radius: 8px; padding: 12px; font-size: 14px; cursor: pointer; font-family: inherit; }
+    .copy-btn:active { background: rgba(213,28,41,0.05); }
+    .section-note { font-size: 12px; color: #8a6a3a; margin-top: 6px; line-height: 1.5; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="logo">
+      <h1>BRASH</h1>
+      <p>End of night order form</p>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Meat order — LA Farms</div>
+      <div class="row row-2">
+        <div class="field">
+          <label>Need (patties)</label>
+          <input type="number" id="meatNeed" placeholder="e.g. 1400" inputmode="numeric" oninput="calcMeat()" />
+        </div>
+        <div class="field">
+          <label>Have (patties)</label>
+          <input type="number" id="meatHave" placeholder="e.g. 100" inputmode="numeric" oninput="calcMeat()" />
+        </div>
+      </div>
+      <div class="field" style="margin-bottom:10px;">
+        <span class="calc-label">To order</span>
+        <div class="calc-display" id="meatOrder">—</div>
+      </div>
+      <div class="field">
+        <label>Meat review</label>
+        <textarea id="meatReview" placeholder="e.g. Good quality, slightly fatty on the edges..."></textarea>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Bun order — Pie in the Sky</div>
+      <div class="row row-3">
+        <div class="field">
+          <label>Need (buns)</label>
+          <input type="number" id="bunNeed" placeholder="e.g. 1400" inputmode="numeric" oninput="calcBuns()" />
+        </div>
+        <div class="field">
+          <label>Have (buns)</label>
+          <input type="number" id="bunHave" placeholder="e.g. 200" inputmode="numeric" oninput="calcBuns()" />
+        </div>
+        <div class="field">
+          <label>Ordered (buns)</label>
+          <input type="number" id="bunOrdered" placeholder="e.g. 500" inputmode="numeric" oninput="calcBuns()" />
+        </div>
+      </div>
+      <div class="row row-2">
+        <div class="field">
+          <span class="calc-label">Packs to order</span>
+          <div class="calc-display" id="bunPacks">—</div>
+        </div>
+        <div class="field">
+          <span class="calc-label">Total buns</span>
+          <div class="calc-display" id="bunTotal">—</div>
+        </div>
+      </div>
+      <p class="section-note">Buns come in packs of 3. Order arrives in 2 days. Decimals always round up.</p>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Who's placing the order?</div>
+      <div class="name-grid">
+        <div class="name-btn" id="btn-seb" onclick="selectName('Seb')">Seb</div>
+        <div class="name-btn" id="btn-liam" onclick="selectName('Liam')">Liam</div>
+      </div>
+    </div>
+
+    <button class="submit-btn" onclick="generateOutput()">Generate order drafts</button>
+
+    <div class="result-box" id="resultBox">
+      <div class="result-title">Order drafts</div>
+      <div class="result-text" id="resultText"></div>
+      <button class="copy-btn" onclick="copyResult()">Copy to clipboard</button>
+    </div>
+  </div>
+
+  <script>
+    let selectedName = '';
+
+    function calcMeat() {
+      const need = parseFloat(document.getElementById('meatNeed').value) || 0;
+      const have = parseFloat(document.getElementById('meatHave').value) || 0;
+      const order = need - have;
+      document.getElementById('meatOrder').textContent = need ? (order > 0 ? order + ' patties' : '0 patties') : '—';
+    }
+
+    function calcBuns() {
+      const need = parseFloat(document.getElementById('bunNeed').value) || 0;
+      const have = parseFloat(document.getElementById('bunHave').value) || 0;
+      const ordered = parseFloat(document.getElementById('bunOrdered').value) || 0;
+      const raw = need - have - ordered;
+      if (!need) { document.getElementById('bunPacks').textContent = '—'; document.getElementById('bunTotal').textContent = '—'; return; }
+      if (raw <= 0) { document.getElementById('bunPacks').textContent = '0 packs'; document.getElementById('bunTotal').textContent = '0 buns'; return; }
+      const packs = Math.ceil(raw / 3);
+      document.getElementById('bunPacks').textContent = packs + ' packs';
+      document.getElementById('bunTotal').textContent = (packs * 3) + ' buns';
+    }
+
+    function selectName(name) {
+      selectedName = name;
+      document.getElementById('btn-seb').classList.toggle('selected', name === 'Seb');
+      document.getElementById('btn-liam').classList.toggle('selected', name === 'Liam');
+    }
+
+    function getDayName(daysAhead) {
+      const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+      const d = new Date();
+      d.setDate(d.getDate() + daysAhead);
+      return days[d.getDay()];
+    }
+
+    function generateOutput() {
+      const meatNeed = parseFloat(document.getElementById('meatNeed').value) || 0;
+      const meatHave = parseFloat(document.getElementById('meatHave').value) || 0;
+      const meatOrder = meatNeed - meatHave;
+      const meatReview = document.getElementById('meatReview').value.trim();
+      const bunNeed = parseFloat(document.getElementById('bunNeed').value) || 0;
+      const bunHave = parseFloat(document.getElementById('bunHave').value) || 0;
+      const bunOrdered = parseFloat(document.getElementById('bunOrdered').value) || 0;
+      const bunRaw = bunNeed - bunHave - bunOrdered;
+      const bunPacks = bunRaw > 0 ? Math.ceil(bunRaw / 3) : 0;
+      const tomorrowName = getDayName(1);
+      const twoDaysName = getDayName(2);
+
+      if (!selectedName) { alert('Please select who is placing the order.'); return; }
+      if (!meatNeed && !bunNeed) { alert('Please fill in at least the meat or bun order.'); return; }
+
+      let output = '';
+
+      if (meatNeed) {
+        output += `WHATSAPP MESSAGE FOR LA FARMS\n\n`;
+        output += `Hey guys, for ${tomorrowName} morning can we please get:\n\n`;
+        output += `${meatOrder}x patties\n`;
+        if (meatReview) output += `\nMeat review: ${meatReview}\n`;
+        output += `\nThank you, ${selectedName}!\n`;
+        output += `\n---\n\n`;
+      }
+
+      if (bunNeed) {
+        output += `EMAIL FOR PIE IN THE SKY (orders@pieintheskybakery.co.za)\n\n`;
+        output += `Hey guys, for ${twoDaysName} morning can we please get:\n\n`;
+        output += `${bunPacks}x packs of buns (${bunPacks * 3} buns)\n`;
+        output += `\nThank you, ${selectedName}!`;
+      }
+
+      document.getElementById('resultText').textContent = output;
+      document.getElementById('resultBox').classList.add('show');
+      setTimeout(() => document.getElementById('resultBox').scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+    }
+
+    function copyResult() {
+      const text = document.getElementById('resultText').textContent;
+      navigator.clipboard.writeText(text).then(() => {
+        const btn = document.querySelector('.copy-btn');
+        btn.textContent = 'Copied!';
+        setTimeout(() => btn.textContent = 'Copy to clipboard', 2000);
+      });
+    }
+  </script>
+</body>
+</html>
