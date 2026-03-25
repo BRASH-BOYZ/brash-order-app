@@ -28,15 +28,22 @@
     .name-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
     .name-btn { background: #FFF8EE; border: 0.5px solid rgba(213,28,41,0.2); border-radius: 8px; padding: 14px; font-size: 15px; color: #2C1A0E; cursor: pointer; text-align: center; transition: all 0.15s; -webkit-tap-highlight-color: transparent; }
     .name-btn.selected { background: #D51C29; color: #fff; border-color: #D51C29; font-weight: 600; }
-    .submit-btn { width: 100%; background: #D51C29; color: #fff; border: none; border-radius: 10px; padding: 16px; font-size: 16px; font-weight: 600; cursor: pointer; margin-top: 0.5rem; letter-spacing: 0.5px; -webkit-tap-highlight-color: transparent; }
+    .submit-btn { width: 100%; background: #D51C29; color: #fff; border: none; border-radius: 10px; padding: 16px; font-size: 16px; font-weight: 600; cursor: pointer; margin-top: 0.5rem; letter-spacing: 0.5px; -webkit-tap-highlight-color: transparent; transition: opacity 0.15s; }
     .submit-btn:active { opacity: 0.85; }
-    .result-box { background: #fff; border-radius: 12px; border: 2px solid #D51C29; padding: 1.25rem; margin-top: 1rem; display: none; }
-    .result-box.show { display: block; }
-    .result-title { font-size: 13px; font-weight: 600; color: #D51C29; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 0.75rem; }
-    .result-text { font-size: 13px; color: #2C1A0E; line-height: 1.8; white-space: pre-wrap; font-family: monospace; background: #FFF8EE; border-radius: 8px; padding: 1rem; }
-    .copy-btn { margin-top: 0.75rem; width: 100%; background: transparent; border: 0.5px solid #D51C29; color: #D51C29; border-radius: 8px; padding: 12px; font-size: 14px; cursor: pointer; font-family: inherit; }
-    .copy-btn:active { background: rgba(213,28,41,0.05); }
+    .submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .status-box { border-radius: 12px; padding: 1.25rem; margin-top: 1rem; text-align: center; display: none; }
+    .status-box.show { display: block; }
+    .status-box.loading { background: #fff; border: 0.5px solid rgba(213,28,41,0.15); }
+    .status-box.success { background: #f0faf4; border: 1px solid #22c55e; }
+    .status-box.error { background: #fff0f0; border: 1px solid #D51C29; }
+    .status-title { font-size: 16px; font-weight: 600; margin-bottom: 6px; }
+    .status-title.loading { color: #8a6a3a; }
+    .status-title.success { color: #16a34a; }
+    .status-title.error { color: #D51C29; }
+    .status-msg { font-size: 13px; color: #8a6a3a; line-height: 1.5; }
     .section-note { font-size: 12px; color: #8a6a3a; margin-top: 6px; line-height: 1.5; }
+    .spinner { display: inline-block; width: 20px; height: 20px; border: 2px solid rgba(213,28,41,0.2); border-top-color: #D51C29; border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 8px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
   </style>
 </head>
 <body>
@@ -105,16 +112,15 @@
       </div>
     </div>
 
-    <button class="submit-btn" onclick="generateOutput()">Generate order drafts</button>
+    <button class="submit-btn" id="submitBtn" onclick="submitOrder()">Generate order drafts</button>
 
-    <div class="result-box" id="resultBox">
-      <div class="result-title">Order drafts</div>
-      <div class="result-text" id="resultText"></div>
-      <button class="copy-btn" onclick="copyResult()">Copy to clipboard</button>
+    <div class="status-box" id="statusBox">
+      <div id="statusContent"></div>
     </div>
   </div>
 
   <script>
+    const WEBHOOK_URL = 'https://brash-n8n.up.railway.app/webhook/b04abd49-aacc-4237-b4e2-b5826b3475b7';
     let selectedName = '';
 
     function calcMeat() {
@@ -142,59 +148,65 @@
       document.getElementById('btn-liam').classList.toggle('selected', name === 'Liam');
     }
 
-    function getDayName(daysAhead) {
-      const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-      const d = new Date();
-      d.setDate(d.getDate() + daysAhead);
-      return days[d.getDay()];
+    function showStatus(type, title, msg) {
+      const box = document.getElementById('statusBox');
+      box.className = 'status-box show ' + type;
+      box.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      if (type === 'loading') {
+        document.getElementById('statusContent').innerHTML = `<div class="spinner"></div><div class="status-title loading">${title}</div><div class="status-msg">${msg}</div>`;
+      } else {
+        document.getElementById('statusContent').innerHTML = `<div class="status-title ${type}">${title}</div><div class="status-msg">${msg}</div>`;
+      }
     }
 
-    function generateOutput() {
+    async function submitOrder() {
       const meatNeed = parseFloat(document.getElementById('meatNeed').value) || 0;
       const meatHave = parseFloat(document.getElementById('meatHave').value) || 0;
-      const meatOrder = meatNeed - meatHave;
+      const meatToOrder = meatNeed - meatHave;
       const meatReview = document.getElementById('meatReview').value.trim();
       const bunNeed = parseFloat(document.getElementById('bunNeed').value) || 0;
       const bunHave = parseFloat(document.getElementById('bunHave').value) || 0;
       const bunOrdered = parseFloat(document.getElementById('bunOrdered').value) || 0;
       const bunRaw = bunNeed - bunHave - bunOrdered;
       const bunPacks = bunRaw > 0 ? Math.ceil(bunRaw / 3) : 0;
-      const tomorrowName = getDayName(1);
-      const twoDaysName = getDayName(2);
+      const bunTotal = bunPacks * 3;
 
       if (!selectedName) { alert('Please select who is placing the order.'); return; }
       if (!meatNeed && !bunNeed) { alert('Please fill in at least the meat or bun order.'); return; }
 
-      let output = '';
+      const payload = {
+        managerName: selectedName,
+        meat: {
+          need: meatNeed,
+          have: meatHave,
+          toOrder: meatToOrder,
+          review: meatReview
+        },
+        buns: {
+          need: bunNeed,
+          have: bunHave,
+          alreadyOrdered: bunOrdered,
+          packsToOrder: bunPacks,
+          totalBuns: bunTotal
+        }
+      };
 
-      if (meatNeed) {
-        output += `WHATSAPP MESSAGE FOR LA FARMS\n\n`;
-        output += `Hey guys, for ${tomorrowName} morning can we please get:\n\n`;
-        output += `${meatOrder}x patties\n`;
-        if (meatReview) output += `\nMeat review: ${meatReview}\n`;
-        output += `\nThank you, ${selectedName}!\n`;
-        output += `\n---\n\n`;
+      const btn = document.getElementById('submitBtn');
+      btn.disabled = true;
+      showStatus('loading', 'Sending orders...', 'Firing up the workflow, give it a few seconds.');
+
+      try {
+        await fetch(WEBHOOK_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        showStatus('success', 'Orders sent!', 'The workflow is running. Check your email in a minute or two for the drafted orders.');
+        btn.disabled = false;
+      } catch (err) {
+        showStatus('error', 'Something went wrong', 'Could not reach n8n. Check your connection and try again.');
+        btn.disabled = false;
       }
-
-      if (bunNeed) {
-        output += `EMAIL FOR PIE IN THE SKY (orders@pieintheskybakery.co.za)\n\n`;
-        output += `Hey guys, for ${twoDaysName} morning can we please get:\n\n`;
-        output += `${bunPacks}x packs of buns (${bunPacks * 3} buns)\n`;
-        output += `\nThank you, ${selectedName}!`;
-      }
-
-      document.getElementById('resultText').textContent = output;
-      document.getElementById('resultBox').classList.add('show');
-      setTimeout(() => document.getElementById('resultBox').scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
-    }
-
-    function copyResult() {
-      const text = document.getElementById('resultText').textContent;
-      navigator.clipboard.writeText(text).then(() => {
-        const btn = document.querySelector('.copy-btn');
-        btn.textContent = 'Copied!';
-        setTimeout(() => btn.textContent = 'Copy to clipboard', 2000);
-      });
     }
   </script>
 </body>
